@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useSystemContext } from '@/contexts/SystemContext';
 import SystemSwitcher from '@/components/SystemSwitcher';
 import ControleEstoque from '@/pages/ControleEstoque';
+import EstoqueMantimentos from '@/pages/EstoqueMantimentos';
 
 const navItemsCantina = [
   { path: '/dashboard/clientes', label: 'Clientes', icon: Users, color: 'text-clients' },
@@ -44,7 +45,6 @@ const MainLayout = () => {
   if (mode === 'estoque') {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        {/* Header Estoque - um pouco mais claro */}
         <header className="fixed top-0 left-0 right-0 z-50 bg-secondary/80 backdrop-blur-lg border-b border-border">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -60,8 +60,8 @@ const MainLayout = () => {
                 <Warehouse className="h-5 w-5 text-products" />
               </div>
               <div>
-                <h1 className="font-bold text-foreground">Controle de Estoque</h1>
-                <p className="text-xs text-muted-foreground">Gestão Empresarial</p>
+                <h1 className="font-bold text-foreground">Estoque Cantina</h1>
+                <p className="text-xs text-muted-foreground">Produtos da Cantina</p>
               </div>
             </div>
             
@@ -77,12 +77,55 @@ const MainLayout = () => {
           </div>
         </header>
 
-        {/* Main Content Estoque */}
         <main className="flex-1 pt-16">
           <ControleEstoque />
         </main>
 
-        {/* System Switcher Modal */}
+        <SystemSwitcher />
+      </div>
+    );
+  }
+
+  // Se estiver no modo mantimentos
+  if (mode === 'mantimentos') {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-collaborators/10 backdrop-blur-lg border-b border-border">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMenu}
+                className="text-foreground hover:bg-collaborators/10"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="w-10 h-10 rounded-xl bg-collaborators/20 flex items-center justify-center">
+                <Package className="h-5 w-5 text-collaborators" />
+              </div>
+              <div>
+                <h1 className="font-bold text-foreground">Estoque Mantimentos</h1>
+                <p className="text-xs text-muted-foreground">Insumos da Empresa</p>
+              </div>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 pt-16">
+          <EstoqueMantimentos />
+        </main>
+
         <SystemSwitcher />
       </div>
     );
