@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useCantinaContext } from '@/contexts/CantinaContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown } from 'lucide-react';
+import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -13,12 +14,32 @@ const meses = [
 const anos = [2024, 2025, 2026, 2027];
 
 const Dashboard = () => {
-  const { getDashboardData } = useCantinaContext();
+  const { getDashboardData, clientes } = useCantinaContext();
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
+  const [abaAtiva, setAbaAtiva] = useState('resumo');
 
   const dados = getDashboardData(mesSelecionado, anoSelecionado);
   const saldoLiquido = dados.creditosMes - dados.debitosMes;
+
+  // Clientes com créditos manuais no mês selecionado
+  const clientesComCreditos = clientes
+    .map(cliente => {
+      const creditosManuais = cliente.historico.filter(h => {
+        const data = new Date(h.data);
+        return h.tipo === 'credito' && 
+               data.getMonth() === mesSelecionado && 
+               data.getFullYear() === anoSelecionado;
+      });
+      const totalCreditos = creditosManuais.reduce((acc, m) => acc + m.valor, 0);
+      return {
+        ...cliente,
+        creditosManuais,
+        totalCreditos
+      };
+    })
+    .filter(c => c.creditosManuais.length > 0)
+    .sort((a, b) => b.totalCreditos - a.totalCreditos);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -114,104 +135,176 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Top Produtos */}
-        <Card className="bg-card shadow-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <BarChart3 className="h-5 w-5 text-products" />
-              Top 5 Produtos Mais Vendidos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dados.topProdutos.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Nenhuma venda no período</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {dados.topProdutos.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-products/20 flex items-center justify-center">
-                      <span className="text-products font-bold text-sm">{idx + 1}</span>
+      {/* Tabs para alternar entre visualizações */}
+      <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="w-full">
+        <TabsList className="w-full grid grid-cols-2 bg-secondary">
+          <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Resumo Geral
+          </TabsTrigger>
+          <TabsTrigger value="creditos" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
+            <CreditCard className="h-4 w-4 mr-2" />
+            Créditos Manuais ({clientesComCreditos.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resumo" className="mt-6">
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Top Produtos */}
+            <Card className="bg-card shadow-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <BarChart3 className="h-5 w-5 text-products" />
+                  Top 5 Produtos Mais Vendidos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dados.topProdutos.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">Nenhuma venda no período</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {dados.topProdutos.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-products/20 flex items-center justify-center">
+                          <span className="text-products font-bold text-sm">{idx + 1}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground">{item.nome}</p>
+                          <div className="h-2 bg-secondary rounded-full mt-1 overflow-hidden">
+                            <div 
+                              className="h-full bg-products rounded-full transition-all"
+                              style={{ 
+                                width: `${(item.vendas / Math.max(...dados.topProdutos.map(p => p.vendas))) * 100}%` 
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-muted-foreground font-medium">{item.vendas} un</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Resumo Financeiro */}
+            <Card className="bg-card shadow-card border-border">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  Resumo Financeiro Mensal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 rounded-xl bg-success/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-success/20">
+                      <TrendingUp className="h-5 w-5 text-success" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{item.nome}</p>
-                      <div className="h-2 bg-secondary rounded-full mt-1 overflow-hidden">
-                        <div 
-                          className="h-full bg-products rounded-full transition-all"
-                          style={{ 
-                            width: `${(item.vendas / Math.max(...dados.topProdutos.map(p => p.vendas))) * 100}%` 
-                          }}
-                        />
+                    <span className="font-medium text-foreground">Total de Créditos</span>
+                  </div>
+                  <span className="text-xl font-bold text-success">R$ {dados.creditosMes.toFixed(2)}</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-destructive/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/20">
+                      <TrendingUp className="h-5 w-5 text-destructive rotate-180" />
+                    </div>
+                    <span className="font-medium text-foreground">Total de Débitos</span>
+                  </div>
+                  <span className="text-xl font-bold text-destructive">R$ {dados.debitosMes.toFixed(2)}</span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-primary/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/20">
+                      <ArrowUpDown className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="font-medium text-foreground">Transações</span>
+                  </div>
+                  <span className="text-xl font-bold text-primary">{dados.transacoesMes}</span>
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-medium text-foreground">Saldo Total Clientes</span>
+                    <span className={cn(
+                      "text-2xl font-bold",
+                      dados.saldoTotal >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      R$ {dados.saldoTotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex gap-4 mt-2 text-sm">
+                    <span className="text-success">↑ R$ {dados.saldosPositivos.toFixed(2)}</span>
+                    <span className="text-destructive">↓ R$ {Math.abs(dados.saldosNegativos).toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="creditos" className="mt-6">
+          <Card className="bg-card shadow-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-foreground">
+                <CreditCard className="h-5 w-5 text-success" />
+                Clientes com Créditos Manuais em {meses[mesSelecionado]}/{anoSelecionado}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {clientesComCreditos.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhum crédito manual registrado neste período</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {clientesComCreditos.map((cliente) => (
+                    <div key={cliente.id} className="p-4 rounded-xl bg-secondary/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-clients/20 flex items-center justify-center">
+                            <span className="text-clients font-bold">
+                              {cliente.nome.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-foreground">{cliente.nome}</h4>
+                            <p className="text-sm text-muted-foreground">{cliente.creditosManuais.length} crédito(s)</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Total recebido</p>
+                          <p className="text-xl font-bold text-success">R$ {cliente.totalCreditos.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-border pt-3 space-y-2">
+                        {cliente.creditosManuais.map((mov) => (
+                          <div key={mov.id} className="flex items-center justify-between text-sm">
+                            <div>
+                              <span className="text-foreground">{mov.descricao}</span>
+                              <span className="text-muted-foreground ml-2">
+                                ({new Date(mov.data).toLocaleDateString('pt-BR')})
+                              </span>
+                            </div>
+                            <span className="text-success font-medium">+ R$ {mov.valor.toFixed(2)}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <span className="text-muted-foreground font-medium">{item.vendas} un</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Resumo Financeiro */}
-        <Card className="bg-card shadow-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Resumo Financeiro Mensal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 rounded-xl bg-success/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-success/20">
-                  <TrendingUp className="h-5 w-5 text-success" />
+                  ))}
                 </div>
-                <span className="font-medium text-foreground">Total de Créditos</span>
-              </div>
-              <span className="text-xl font-bold text-success">R$ {dados.creditosMes.toFixed(2)}</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-destructive/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-destructive/20">
-                  <TrendingUp className="h-5 w-5 text-destructive rotate-180" />
-                </div>
-                <span className="font-medium text-foreground">Total de Débitos</span>
-              </div>
-              <span className="text-xl font-bold text-destructive">R$ {dados.debitosMes.toFixed(2)}</span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-primary/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/20">
-                  <ArrowUpDown className="h-5 w-5 text-primary" />
-                </div>
-                <span className="font-medium text-foreground">Transações</span>
-              </div>
-              <span className="text-xl font-bold text-primary">{dados.transacoesMes}</span>
-            </div>
-
-            <div className="pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-medium text-foreground">Saldo Total Clientes</span>
-                <span className={cn(
-                  "text-2xl font-bold",
-                  dados.saldoTotal >= 0 ? "text-success" : "text-destructive"
-                )}>
-                  R$ {dados.saldoTotal.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex gap-4 mt-2 text-sm">
-                <span className="text-success">↑ R$ {dados.saldosPositivos.toFixed(2)}</span>
-                <span className="text-destructive">↓ R$ {Math.abs(dados.saldosNegativos).toFixed(2)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

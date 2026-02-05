@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { UserCog, Plus, Search, MinusCircle, CreditCard, History, Trash2 } from 'lucide-react';
+import { UserCog, Plus, Search, MinusCircle, CreditCard, History, Trash2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -156,74 +156,83 @@ const Colaboradores = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {colaboradoresFiltrados.map((colaborador) => (
-            <Card key={colaborador.id} className="bg-card shadow-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-collaborators/20 flex items-center justify-center">
-                      <span className="text-collaborators font-bold text-lg">
-                        {colaborador.nome.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{colaborador.nome}</h3>
-                      <p className="text-sm text-muted-foreground">{colaborador.cargo}</p>
-                    </div>
+            <Card key={colaborador.id} className={cn(
+              "bg-card shadow-card border-border transition-all hover:shadow-lg",
+              colaborador.debito > 0 && "border-destructive/30"
+            )}>
+              <CardContent className="p-5">
+                {/* Header com nome e ações */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-foreground text-lg uppercase tracking-wide">
+                    {colaborador.nome}
+                  </h3>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => abrirHistorico(colaborador.id)}
+                      className="h-8 w-8 text-primary hover:bg-primary/10"
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm(`Deseja realmente remover "${colaborador.nome}"?`)) {
+                          removerColaborador(colaborador.id);
+                          toast.success('Colaborador removido');
+                        }
+                      }}
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
+                </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Débito</p>
-                      <p className={cn(
-                        "text-xl font-bold",
-                        colaborador.debito > 0 ? "text-destructive" : "text-success"
-                      )}>
-                        R$ {colaborador.debito.toFixed(2)}
-                      </p>
-                    </div>
+                {/* Cargo */}
+                <p className="text-sm text-muted-foreground mb-4">{colaborador.cargo}</p>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirMovimentacao(colaborador.id, 'debito')}
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                      >
-                        <MinusCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirMovimentacao(colaborador.id, 'pagamento')}
-                        className="border-success text-success hover:bg-success/10"
-                      >
-                        <CreditCard className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirHistorico(colaborador.id)}
-                        className="border-primary text-primary hover:bg-primary/10"
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (confirm(`Deseja realmente remover "${colaborador.nome}"?`)) {
-                            removerColaborador(colaborador.id);
-                            toast.success('Colaborador removido');
-                          }
-                        }}
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {/* Ícone e Dívida */}
+                <div className="flex flex-col items-center py-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center mb-2",
+                    colaborador.debito > 0 ? "bg-collaborators/20" : "bg-success/20"
+                  )}>
+                    <DollarSign className={cn(
+                      "h-6 w-6",
+                      colaborador.debito > 0 ? "text-collaborators" : "text-success"
+                    )} />
                   </div>
+                  <p className="text-sm text-muted-foreground">Dívida Total</p>
+                  <p className={cn(
+                    "text-3xl font-bold",
+                    colaborador.debito > 0 ? "text-destructive" : "text-success"
+                  )}>
+                    R$ {colaborador.debito.toFixed(2)}
+                  </p>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <Button
+                    onClick={() => abrirMovimentacao(colaborador.id, 'debito')}
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <MinusCircle className="h-4 w-4 mr-2" />
+                    Débito
+                  </Button>
+                  <Button
+                    onClick={() => abrirMovimentacao(colaborador.id, 'pagamento')}
+                    className="bg-success hover:bg-success/90 text-success-foreground"
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pagamento
+                  </Button>
                 </div>
               </CardContent>
             </Card>

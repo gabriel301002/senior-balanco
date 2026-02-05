@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CantinaProvider } from "@/contexts/CantinaContext";
 import { SystemProvider } from "@/contexts/SystemContext";
+import { EstoqueMantimentosProvider } from "@/contexts/EstoqueMantimentosContext";
 import Login from "./pages/Login";
 import MainLayout from "./layouts/MainLayout";
 import Clientes from "./pages/Clientes";
@@ -19,22 +20,24 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <CantinaProvider>
-        <SystemProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/dashboard" element={<MainLayout />}>
-                <Route path="clientes" element={<Clientes />} />
-                <Route path="produtos" element={<Produtos />} />
-                <Route path="colaboradores" element={<Colaboradores />} />
-                <Route path="geral" element={<Dashboard />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </SystemProvider>
+        <EstoqueMantimentosProvider>
+          <SystemProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/dashboard" element={<MainLayout />}>
+                  <Route path="clientes" element={<Clientes />} />
+                  <Route path="produtos" element={<Produtos />} />
+                  <Route path="colaboradores" element={<Colaboradores />} />
+                  <Route path="geral" element={<Dashboard />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </SystemProvider>
+        </EstoqueMantimentosProvider>
       </CantinaProvider>
     </TooltipProvider>
   </QueryClientProvider>

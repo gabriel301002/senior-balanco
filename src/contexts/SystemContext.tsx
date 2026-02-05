@@ -1,6 +1,6 @@
  import React, { createContext, useContext, useState, ReactNode } from 'react';
 
- type SystemMode = 'cantina' | 'estoque';
+ type SystemMode = 'cantina' | 'estoque' | 'mantimentos';
 
  interface SystemContextType {
    mode: SystemMode;
