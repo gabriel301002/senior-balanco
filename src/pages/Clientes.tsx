@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Users, DollarSign, TrendingUp, TrendingDown, Plus, Search, CreditCard, MinusCircle, History, Trash2 } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, TrendingDown, Plus, Search, PlusCircle, MinusCircle, History, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -207,76 +207,79 @@ const Clientes = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {clientesFiltrados.map((cliente) => (
-            <Card key={cliente.id} className="bg-card shadow-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-clients/20 flex items-center justify-center">
-                      <span className="text-clients font-bold text-lg">
-                        {cliente.nome.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{cliente.nome}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Cadastrado em {new Date(cliente.dataCadastro).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
+            <Card key={cliente.id} className={cn(
+              "bg-card shadow-card border-border transition-all hover:shadow-lg",
+              cliente.saldo < 0 && "border-destructive/30"
+            )}>
+              <CardContent className="p-5">
+                {/* Header com avatar e nome */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-clients/20 flex items-center justify-center shrink-0">
+                    <span className="text-clients font-bold text-lg">
+                      {cliente.nome.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Saldo</p>
-                      <p className={cn(
-                        "text-xl font-bold",
-                        cliente.saldo >= 0 ? "text-success" : "text-destructive"
-                      )}>
-                        R$ {cliente.saldo.toFixed(2)}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirMovimentacao(cliente.id, 'credito')}
-                        className="border-success text-success hover:bg-success/10"
-                      >
-                        <CreditCard className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirMovimentacao(cliente.id, 'debito')}
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                      >
-                        <MinusCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => abrirHistorico(cliente.id)}
-                        className="border-primary text-primary hover:bg-primary/10"
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (confirm(`Deseja realmente remover "${cliente.nome}"?`)) {
-                            removerCliente(cliente.id);
-                            toast.success('Cliente removido');
-                          }
-                        }}
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground truncate">{cliente.nome}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Desde {new Date(cliente.dataCadastro).toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => abrirHistorico(cliente.id)}
+                      className="h-8 w-8 text-primary hover:bg-primary/10"
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm(`Deseja realmente remover "${cliente.nome}"?`)) {
+                          removerCliente(cliente.id);
+                          toast.success('Cliente removido');
+                        }
+                      }}
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Saldo Atual */}
+                <div className="text-center py-4 rounded-xl bg-secondary/50 mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">Saldo Atual</p>
+                  <p className={cn(
+                    "text-3xl font-bold",
+                    cliente.saldo >= 0 ? "text-success" : "text-destructive"
+                  )}>
+                    R$ {cliente.saldo.toFixed(2)}
+                  </p>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => abrirMovimentacao(cliente.id, 'credito')}
+                    className="bg-success hover:bg-success/90 text-success-foreground"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Crédito
+                  </Button>
+                  <Button
+                    onClick={() => abrirMovimentacao(cliente.id, 'debito')}
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <MinusCircle className="h-4 w-4 mr-2" />
+                    Débito
+                  </Button>
                 </div>
               </CardContent>
             </Card>

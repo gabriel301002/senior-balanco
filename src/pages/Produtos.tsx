@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle } from 'lucide-react';
+import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const Produtos = () => {
-  const { produtos, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto } = useCantinaContext();
+  const { produtos, clientes, colaboradores, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto, realizarVenda, adicionarDebitoColaborador } = useCantinaContext();
   const [busca, setBusca] = useState('');
   
   // Novo produto
@@ -30,6 +31,12 @@ const Produtos = () => {
   const [descricaoMovimentacao, setDescricaoMovimentacao] = useState('');
   const [dialogMovimentacao, setDialogMovimentacao] = useState(false);
   const [dialogHistorico, setDialogHistorico] = useState(false);
+
+  // Venda
+  const [dialogVenda, setDialogVenda] = useState(false);
+  const [vendaCompradorTipo, setVendaCompradorTipo] = useState<'cliente' | 'colaborador'>('cliente');
+  const [vendaCompradorId, setVendaCompradorId] = useState('');
+  const [vendaQuantidade, setVendaQuantidade] = useState(1);
 
   const produtosFiltrados = produtos.filter(p => 
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -97,6 +104,52 @@ const Produtos = () => {
     setProdutoSelecionado(produtoId);
     setDialogHistorico(true);
   };
+
+  const abrirVenda = (produtoId: string) => {
+    setProdutoSelecionado(produtoId);
+    setVendaQuantidade(1);
+    setVendaCompradorId('');
+    setDialogVenda(true);
+  };
+
+  const handleVenda = () => {
+    if (!produtoSelecionado || !vendaCompradorId) {
+      toast.error('Selecione quem está comprando');
+      return;
+    }
+
+    const produto = produtos.find(p => p.id === produtoSelecionado);
+    if (!produto) return;
+
+    if (produto.estoqueAtual < vendaQuantidade) {
+      toast.error('Estoque insuficiente');
+      return;
+    }
+
+    if (vendaCompradorTipo === 'cliente') {
+      const sucesso = realizarVenda(vendaCompradorId, produtoSelecionado, vendaQuantidade);
+      if (sucesso) {
+        const cliente = clientes.find(c => c.id === vendaCompradorId);
+        toast.success(`Venda realizada para ${cliente?.nome}!`);
+        setDialogVenda(false);
+      } else {
+        toast.error('Erro ao realizar venda');
+      }
+    } else {
+      // Venda para colaborador
+      const colaborador = colaboradores.find(c => c.id === vendaCompradorId);
+      if (colaborador) {
+        const valorTotal = produto.preco * vendaQuantidade;
+        saidaEstoque(produtoSelecionado, vendaQuantidade, `Venda para ${colaborador.nome}`);
+        adicionarDebitoColaborador(vendaCompradorId, valorTotal, `Compra: ${vendaQuantidade}x ${produto.nome}`);
+        toast.success(`Venda realizada para ${colaborador.nome}!`);
+        setDialogVenda(false);
+      }
+    }
+  };
+
+  const produtoVenda = produtos.find(p => p.id === produtoSelecionado);
+  const valorTotalVenda = produtoVenda ? produtoVenda.preco * vendaQuantidade : 0;
 
   const produtoHistorico = produtos.find(p => p.id === produtoSelecionado);
 
@@ -212,88 +265,114 @@ const Produtos = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {produtosFiltrados.map((produto) => {
             const estoqueAlerta = produto.estoqueAtual <= produto.estoqueMinimo;
+            const estoqueZero = produto.estoqueAtual === 0;
             
             return (
               <Card key={produto.id} className={cn(
                 "bg-card shadow-card border-border",
-                estoqueAlerta && "border-warning/50"
+                estoqueZero && "border-destructive bg-destructive/5",
+                estoqueAlerta && !estoqueZero && "border-warning/50"
               )}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-products/20 flex items-center justify-center">
-                        <Package className="h-6 w-6 text-products" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-foreground">{produto.nome}</h3>
-                          {estoqueAlerta && (
-                            <AlertTriangle className="h-4 w-4 text-warning" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Código: {produto.codigo} • R$ {produto.preco.toFixed(2)}
-                        </p>
-                      </div>
+                <CardContent className="p-4 space-y-4">
+                  {/* Header com foto e ações */}
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "w-16 h-16 rounded-xl flex items-center justify-center shrink-0",
+                      estoqueZero ? "bg-destructive/20" : "bg-products/20"
+                    )}>
+                      <ImageIcon className={cn(
+                        "h-8 w-8",
+                        estoqueZero ? "text-destructive" : "text-products"
+                      )} />
                     </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Estoque</p>
-                        <p className={cn(
-                          "text-xl font-bold",
-                          estoqueAlerta ? "text-warning" : "text-foreground"
-                        )}>
-                          {produto.estoqueAtual} un
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Mín: {produto.estoqueMinimo}
-                        </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-foreground">{produto.nome}</h3>
+                        {estoqueZero && (
+                          <span className="px-2 py-0.5 text-xs rounded bg-destructive text-destructive-foreground">SEM ESTOQUE</span>
+                        )}
+                        {estoqueAlerta && !estoqueZero && (
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        )}
                       </div>
-
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirMovimentacao(produto.id, 'entrada')}
-                          className="border-success text-success hover:bg-success/10"
-                        >
-                          <ArrowUpCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirMovimentacao(produto.id, 'saida')}
-                          className="border-destructive text-destructive hover:bg-destructive/10"
-                        >
-                          <ArrowDownCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => abrirHistorico(produto.id)}
-                          className="border-primary text-primary hover:bg-primary/10"
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (confirm(`Deseja realmente remover "${produto.nome}"?`)) {
-                              removerProduto(produto.id);
-                              toast.success('Produto removido');
-                            }
-                          }}
-                          className="border-destructive text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <p className="text-sm text-muted-foreground">Código: {produto.codigo}</p>
+                      <p className="text-lg font-bold text-primary">R$ {produto.preco.toFixed(2)}</p>
                     </div>
+                  </div>
+
+                  {/* Estoque */}
+                  <div className="grid grid-cols-2 gap-2 text-center p-3 rounded-lg bg-secondary/50">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Estoque Atual</p>
+                      <p className={cn(
+                        "text-xl font-bold",
+                        estoqueZero ? "text-destructive" : estoqueAlerta ? "text-warning" : "text-foreground"
+                      )}>
+                        {produto.estoqueAtual}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Estoque Mínimo</p>
+                      <p className="text-xl font-bold text-muted-foreground">
+                        {produto.estoqueMinimo}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Botão Vender */}
+                  <Button
+                    onClick={() => abrirVenda(produto.id)}
+                    disabled={estoqueZero}
+                    className="w-full bg-products hover:bg-products/90 text-products-foreground"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    VENDER
+                  </Button>
+
+                  {/* Ações secundárias */}
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => abrirMovimentacao(produto.id, 'entrada')}
+                      className="border-success text-success hover:bg-success/10"
+                    >
+                      <ArrowUpCircle className="h-4 w-4 mr-1" />
+                      Entrada
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => abrirMovimentacao(produto.id, 'saida')}
+                      className="border-destructive text-destructive hover:bg-destructive/10"
+                    >
+                      <ArrowDownCircle className="h-4 w-4 mr-1" />
+                      Saída
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => abrirHistorico(produto.id)}
+                      className="text-primary hover:bg-primary/10"
+                    >
+                      <History className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        if (confirm(`Deseja realmente remover "${produto.nome}"?`)) {
+                          removerProduto(produto.id);
+                          toast.success('Produto removido');
+                        }
+                      }}
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -301,6 +380,124 @@ const Produtos = () => {
           })}
         </div>
       )}
+
+      {/* Dialog Venda */}
+      <Dialog open={dialogVenda} onOpenChange={setDialogVenda}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-products flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Realizar Venda
+            </DialogTitle>
+          </DialogHeader>
+          
+          {produtoVenda && (
+            <div className="space-y-4 py-4">
+              {/* Produto info */}
+              <div className="p-4 rounded-xl bg-secondary/50 text-center">
+                <p className="text-lg font-bold text-foreground">{produtoVenda.nome}</p>
+                <p className="text-2xl font-bold text-primary">R$ {produtoVenda.preco.toFixed(2)}</p>
+                <p className="text-sm text-muted-foreground">Estoque: {produtoVenda.estoqueAtual} un</p>
+              </div>
+
+              {/* Tipo de comprador */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Tipo de Comprador</Label>
+                <Select value={vendaCompradorTipo} onValueChange={(v) => {
+                  setVendaCompradorTipo(v as 'cliente' | 'colaborador');
+                  setVendaCompradorId('');
+                }}>
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente">Cliente</SelectItem>
+                    <SelectItem value="colaborador">Colaborador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Selecionar comprador */}
+              <div className="space-y-2">
+                <Label className="text-foreground">
+                  {vendaCompradorTipo === 'cliente' ? 'Cliente' : 'Colaborador'}
+                </Label>
+                <Select value={vendaCompradorId} onValueChange={setVendaCompradorId}>
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
+                    <SelectValue placeholder="Selecione quem está comprando..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendaCompradorTipo === 'cliente' ? (
+                      clientes.length === 0 ? (
+                        <SelectItem value="" disabled>Nenhum cliente cadastrado</SelectItem>
+                      ) : (
+                        clientes.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome} (Saldo: R$ {c.saldo.toFixed(2)})
+                          </SelectItem>
+                        ))
+                      )
+                    ) : (
+                      colaboradores.length === 0 ? (
+                        <SelectItem value="" disabled>Nenhum colaborador cadastrado</SelectItem>
+                      ) : (
+                        colaboradores.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome} - {c.cargo}
+                          </SelectItem>
+                        ))
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quantidade */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Quantidade</Label>
+                <div className="flex items-center justify-center gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setVendaQuantidade(q => Math.max(1, q - 1))}
+                    className="h-12 w-12 rounded-full border-border"
+                  >
+                    <Minus className="h-5 w-5" />
+                  </Button>
+                  <span className="text-3xl font-bold text-foreground w-16 text-center">
+                    {vendaQuantidade}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setVendaQuantidade(q => Math.min(produtoVenda.estoqueAtual, q + 1))}
+                    className="h-12 w-12 rounded-full border-border"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="p-4 rounded-xl bg-products/10 text-center">
+                <p className="text-sm text-muted-foreground">Total da Venda</p>
+                <p className="text-3xl font-bold text-products">R$ {valorTotalVenda.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogVenda(false)} className="border-border text-foreground">
+              Cancelar
+            </Button>
+            <Button onClick={handleVenda} className="bg-products hover:bg-products/90">
+              Confirmar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog Movimentação */}
       <Dialog open={dialogMovimentacao} onOpenChange={setDialogMovimentacao}>
