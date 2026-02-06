@@ -5,13 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon } from 'lucide-react';
+import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const Produtos = () => {
-  const { produtos, clientes, colaboradores, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto, realizarVenda, adicionarDebitoColaborador } = useCantinaContext();
+  const { produtos, clientes, colaboradores, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto, realizarVenda, adicionarDebitoColaborador, atualizarFotoProduto } = useCantinaContext();
   const [busca, setBusca] = useState('');
   
   // Novo produto
@@ -22,6 +22,7 @@ const Produtos = () => {
     preco: '',
     estoqueInicial: '',
     estoqueMinimo: '',
+    fotoUrl: '',
   });
 
   // Movimentação de estoque
@@ -37,6 +38,10 @@ const Produtos = () => {
   const [vendaCompradorTipo, setVendaCompradorTipo] = useState<'cliente' | 'colaborador'>('cliente');
   const [vendaCompradorId, setVendaCompradorId] = useState('');
   const [vendaQuantidade, setVendaQuantidade] = useState(1);
+
+  // Editar foto
+  const [dialogFoto, setDialogFoto] = useState(false);
+  const [novaFotoUrl, setNovaFotoUrl] = useState('');
 
   const produtosFiltrados = produtos.filter(p => 
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -57,10 +62,24 @@ const Produtos = () => {
       return;
     }
 
-    adicionarProduto(novoProduto.codigo, novoProduto.nome, preco, estoqueInicial, estoqueMinimo);
+    adicionarProduto(novoProduto.codigo, novoProduto.nome, preco, estoqueInicial, estoqueMinimo, novoProduto.fotoUrl || undefined);
     toast.success(`Produto "${novoProduto.nome}" adicionado!`);
-    setNovoProduto({ codigo: '', nome: '', preco: '', estoqueInicial: '', estoqueMinimo: '' });
+    setNovoProduto({ codigo: '', nome: '', preco: '', estoqueInicial: '', estoqueMinimo: '', fotoUrl: '' });
     setDialogAberto(false);
+  };
+
+  const handleSalvarFoto = () => {
+    if (!produtoSelecionado) return;
+    atualizarFotoProduto(produtoSelecionado, novaFotoUrl);
+    toast.success('Foto atualizada!');
+    setDialogFoto(false);
+    setNovaFotoUrl('');
+  };
+
+  const abrirEditarFoto = (produtoId: string, fotoAtual?: string) => {
+    setProdutoSelecionado(produtoId);
+    setNovaFotoUrl(fotoAtual || '');
+    setDialogFoto(true);
   };
 
   const handleMovimentacao = () => {
@@ -216,6 +235,18 @@ const Produtos = () => {
                   className="bg-secondary border-border text-foreground"
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="text-foreground flex items-center gap-2">
+                  <LinkIcon className="h-4 w-4" />
+                  Link da Foto (opcional)
+                </Label>
+                <Input
+                  placeholder="https://exemplo.com/foto.jpg"
+                  value={novoProduto.fotoUrl}
+                  onChange={(e) => setNovoProduto(prev => ({ ...prev, fotoUrl: e.target.value }))}
+                  className="bg-secondary border-border text-foreground"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-foreground">Estoque Inicial</Label>
@@ -279,15 +310,36 @@ const Produtos = () => {
                 <CardContent className="p-4 space-y-4">
                   {/* Header com foto e ações */}
                   <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "w-16 h-16 rounded-xl flex items-center justify-center shrink-0",
-                      estoqueZero ? "bg-destructive/20" : "bg-products/20"
-                    )}>
-                      <ImageIcon className={cn(
-                        "h-8 w-8",
-                        estoqueZero ? "text-destructive" : "text-products"
-                      )} />
-                    </div>
+                    <button
+                      onClick={() => abrirEditarFoto(produto.id, produto.fotoUrl)}
+                      className={cn(
+                        "w-16 h-16 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group cursor-pointer transition-all hover:ring-2 hover:ring-products",
+                        estoqueZero ? "bg-destructive/20" : "bg-products/20"
+                      )}
+                    >
+                      {produto.fotoUrl ? (
+                        <>
+                          <img 
+                            src={produto.fotoUrl} 
+                            alt={produto.nome}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <LinkIcon className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className={cn(
+                            "h-8 w-8",
+                            estoqueZero ? "text-destructive" : "text-products"
+                          )} />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <LinkIcon className="h-5 w-5 text-white" />
+                          </div>
+                        </>
+                      )}
+                    </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-foreground">{produto.nome}</h3>
@@ -575,6 +627,49 @@ const Produtos = () => {
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Editar Foto */}
+      <Dialog open={dialogFoto} onOpenChange={setDialogFoto}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <LinkIcon className="h-5 w-5" />
+              Adicionar/Editar Foto
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-foreground">Link da Imagem</Label>
+              <Input
+                placeholder="https://exemplo.com/foto.jpg"
+                value={novaFotoUrl}
+                onChange={(e) => setNovaFotoUrl(e.target.value)}
+                className="bg-secondary border-border text-foreground"
+              />
+            </div>
+            {novaFotoUrl && (
+              <div className="flex justify-center">
+                <img 
+                  src={novaFotoUrl} 
+                  alt="Preview"
+                  className="w-32 h-32 object-cover rounded-xl border border-border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogFoto(false)} className="border-border text-foreground">
+              Cancelar
+            </Button>
+            <Button onClick={handleSalvarFoto} className="bg-products hover:bg-products/90">
+              Salvar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

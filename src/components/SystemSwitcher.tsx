@@ -1,6 +1,6 @@
 import { useSystemContext } from '@/contexts/SystemContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Warehouse, X, Package } from 'lucide-react';
+import { ShoppingCart, X, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SystemSwitcher = () => {
@@ -60,36 +60,6 @@ const SystemSwitcher = () => {
                 <h3 className="font-bold text-foreground text-lg">Cantina</h3>
                 <p className="text-sm text-muted-foreground">
                   Gestão de clientes, saldos e vendas
-                </p>
-              </div>
-            </button>
-
-            {/* Estoque Cantina Option */}
-            <button
-              onClick={() => {
-                setMode('estoque');
-                setMenuOpen(false);
-              }}
-              className={cn(
-                "w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 text-left",
-                mode === 'estoque'
-                  ? "border-products bg-products/10"
-                  : "border-border hover:border-products/50 hover:bg-secondary"
-              )}
-            >
-              <div className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center shrink-0",
-                mode === 'estoque' ? "bg-products" : "bg-secondary"
-              )}>
-                <Warehouse className={cn(
-                  "h-7 w-7",
-                  mode === 'estoque' ? "text-products-foreground" : "text-muted-foreground"
-                )} />
-              </div>
-              <div>
-                <h3 className="font-bold text-foreground text-lg">Estoque Cantina</h3>
-                <p className="text-sm text-muted-foreground">
-                  Entrada, saída e relatórios de produtos
                 </p>
               </div>
             </button>

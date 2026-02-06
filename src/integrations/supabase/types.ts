@@ -14,7 +14,317 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          created_at: string
+          data_cadastro: string
+          id: string
+          nome: string
+          saldo: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_cadastro?: string
+          id?: string
+          nome: string
+          saldo?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_cadastro?: string
+          id?: string
+          nome?: string
+          saldo?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      colaboradores: {
+        Row: {
+          cargo: string
+          created_at: string
+          data_cadastro: string
+          debito: number
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cargo: string
+          created_at?: string
+          data_cadastro?: string
+          debito?: number
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string
+          created_at?: string
+          data_cadastro?: string
+          debito?: number
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mantimentos: {
+        Row: {
+          codigo: string
+          created_at: string
+          data_cadastro: string
+          estoque_atual: number
+          estoque_maximo: number | null
+          estoque_minimo: number
+          foto_url: string | null
+          id: string
+          nome: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          data_cadastro?: string
+          estoque_atual?: number
+          estoque_maximo?: number | null
+          estoque_minimo?: number
+          foto_url?: string | null
+          id?: string
+          nome: string
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          data_cadastro?: string
+          estoque_atual?: number
+          estoque_maximo?: number | null
+          estoque_minimo?: number
+          foto_url?: string | null
+          id?: string
+          nome?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      movimentacoes_cliente: {
+        Row: {
+          cliente_id: string
+          data: string
+          descricao: string
+          id: string
+          produto_id: string | null
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          data?: string
+          descricao: string
+          id?: string
+          produto_id?: string | null
+          tipo: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          data?: string
+          descricao?: string
+          id?: string
+          produto_id?: string | null
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_colaborador: {
+        Row: {
+          colaborador_id: string
+          data: string
+          descricao: string
+          id: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          colaborador_id: string
+          data?: string
+          descricao: string
+          id?: string
+          tipo: string
+          valor: number
+        }
+        Update: {
+          colaborador_id?: string
+          data?: string
+          descricao?: string
+          id?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_colaborador_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_estoque: {
+        Row: {
+          cliente_id: string | null
+          data: string
+          descricao: string
+          id: string
+          produto_id: string
+          quantidade: number
+          tipo: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          data?: string
+          descricao: string
+          id?: string
+          produto_id: string
+          quantidade: number
+          tipo: string
+        }
+        Update: {
+          cliente_id?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacoes_mantimento: {
+        Row: {
+          data: string
+          descricao: string
+          id: string
+          mantimento_id: string
+          quantidade: number
+          tipo: string
+        }
+        Insert: {
+          data?: string
+          descricao: string
+          id?: string
+          mantimento_id: string
+          quantidade: number
+          tipo: string
+        }
+        Update: {
+          data?: string
+          descricao?: string
+          id?: string
+          mantimento_id?: string
+          quantidade?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_mantimento_mantimento_id_fkey"
+            columns: ["mantimento_id"]
+            isOneToOne: false
+            referencedRelation: "mantimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          codigo: string
+          created_at: string
+          data_cadastro: string
+          estoque_atual: number
+          estoque_minimo: number
+          foto_url: string | null
+          id: string
+          nome: string
+          preco: number
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          data_cadastro?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          foto_url?: string | null
+          id?: string
+          nome: string
+          preco: number
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          data_cadastro?: string
+          estoque_atual?: number
+          estoque_minimo?: number
+          foto_url?: string | null
+          id?: string
+          nome?: string
+          preco?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

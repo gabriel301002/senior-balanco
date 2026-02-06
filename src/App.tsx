@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CantinaProvider } from "@/contexts/CantinaContext";
 import { SystemProvider } from "@/contexts/SystemContext";
 import { EstoqueMantimentosProvider } from "@/contexts/EstoqueMantimentosContext";
+import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import MainLayout from "./layouts/MainLayout";
 import Clientes from "./pages/Clientes";
@@ -19,26 +20,28 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CantinaProvider>
-        <EstoqueMantimentosProvider>
-          <SystemProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/dashboard" element={<MainLayout />}>
-                  <Route path="clientes" element={<Clientes />} />
-                  <Route path="produtos" element={<Produtos />} />
-                  <Route path="colaboradores" element={<Colaboradores />} />
-                  <Route path="geral" element={<Dashboard />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </SystemProvider>
-        </EstoqueMantimentosProvider>
-      </CantinaProvider>
+      <AuthProvider>
+        <CantinaProvider>
+          <EstoqueMantimentosProvider>
+            <SystemProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Login />} />
+                  <Route path="/dashboard" element={<MainLayout />}>
+                    <Route path="clientes" element={<Clientes />} />
+                    <Route path="produtos" element={<Produtos />} />
+                    <Route path="colaboradores" element={<Colaboradores />} />
+                    <Route path="geral" element={<Dashboard />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </SystemProvider>
+          </EstoqueMantimentosProvider>
+        </CantinaProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

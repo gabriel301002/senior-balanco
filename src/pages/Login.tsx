@@ -1,32 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
+  const [modo, setModo] = useState<'login' | 'cadastro'>('login');
   const navigate = useNavigate();
+  const { user, signIn, signUp } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCarregando(true);
 
-    // Simulação de delay para UX
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Credenciais fixas
-    if (email === 'seniorpassoapasso@gmail.com' && senha === 'Senior301002') {
-      toast.success('Login realizado com sucesso!');
-      localStorage.setItem('cantina_auth', 'true');
-      navigate('/dashboard');
-    } else {
-      toast.error('Credenciais inválidas');
+    try {
+      if (modo === 'login') {
+        const { error } = await signIn(email, senha);
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            toast.error('Email ou senha incorretos');
+          } else if (error.message.includes('Email not confirmed')) {
+            toast.error('Por favor, confirme seu email antes de entrar');
+          } else {
+            toast.error(error.message);
+          }
+        } else {
+          toast.success('Login realizado com sucesso!');
+          navigate('/dashboard');
+        }
+      } else {
+        if (senha.length < 6) {
+          toast.error('A senha deve ter pelo menos 6 caracteres');
+          setCarregando(false);
+          return;
+        }
+        
+        const { error } = await signUp(email, senha);
+        if (error) {
+          if (error.message.includes('already registered')) {
+            toast.error('Este email já está cadastrado');
+          } else {
+            toast.error(error.message);
+          }
+        } else {
+          toast.success('Cadastro realizado! Verifique seu email para confirmar.');
+          setModo('login');
+        }
+      }
+    } catch (err) {
+      toast.error('Ocorreu um erro. Tente novamente.');
     }
     
     setCarregando(false);
@@ -64,15 +99,19 @@ const Login = () => {
           </div>
 
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground">Acesso ao Sistema</h2>
+            <h2 className="text-3xl font-bold text-foreground">
+              {modo === 'login' ? 'Acesso ao Sistema' : 'Criar Conta'}
+            </h2>
             <p className="mt-2 text-muted-foreground">
-              Entre com suas credenciais para continuar
+              {modo === 'login' 
+                ? 'Entre com suas credenciais para continuar' 
+                : 'Preencha os dados para criar sua conta'}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Login</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -115,13 +154,24 @@ const Login = () => {
               disabled={carregando}
               className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
             >
-              {carregando ? 'Entrando...' : 'Entrar'}
+              {carregando ? 'Aguarde...' : modo === 'login' ? 'Entrar' : 'Criar Conta'}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Acesso restrito aos responsáveis autorizados.
-          </p>
+          <div className="text-center space-y-4">
+            <button
+              onClick={() => setModo(modo === 'login' ? 'cadastro' : 'login')}
+              className="text-primary hover:underline"
+            >
+              {modo === 'login' 
+                ? 'Não tem conta? Criar agora' 
+                : 'Já tem conta? Fazer login'}
+            </button>
+            
+            <p className="text-sm text-muted-foreground">
+              Acesso restrito aos responsáveis autorizados.
+            </p>
+          </div>
         </div>
       </div>
     </div>
