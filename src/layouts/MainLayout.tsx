@@ -1,13 +1,13 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Users, Package, UserCog, LayoutDashboard, LogOut, Menu, Warehouse, ShoppingCart } from 'lucide-react';
+import { Users, Package, UserCog, LayoutDashboard, LogOut, Menu, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useSystemContext } from '@/contexts/SystemContext';
 import SystemSwitcher from '@/components/SystemSwitcher';
-import ControleEstoque from '@/pages/ControleEstoque';
 import EstoqueMantimentos from '@/pages/EstoqueMantimentos';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItemsCantina = [
   { path: '/dashboard/clientes', label: 'Clientes', icon: Users, color: 'text-clients' },
@@ -20,13 +20,13 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { mode, toggleMenu } = useSystemContext();
+  const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
-    const isAuth = localStorage.getItem('cantina_auth');
-    if (!isAuth) {
+    if (!loading && !user) {
       navigate('/');
     }
-  }, [navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     // Redirecionar para clientes se estiver na raiz do dashboard
@@ -35,53 +35,19 @@ const MainLayout = () => {
     }
   }, [location.pathname, navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('cantina_auth');
+  const handleLogout = async () => {
+    await signOut();
     toast.success('Sessão encerrada');
     navigate('/');
   };
 
-  // Se estiver no modo estoque, renderiza layout diferente
-  if (mode === 'estoque') {
+  if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-secondary/80 backdrop-blur-lg border-b border-border">
-          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleMenu}
-                className="text-foreground hover:bg-primary/10"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <div className="w-10 h-10 rounded-xl bg-products/20 flex items-center justify-center">
-                <Warehouse className="h-5 w-5 text-products" />
-              </div>
-              <div>
-                <h1 className="font-bold text-foreground">Estoque Cantina</h1>
-                <p className="text-xs text-muted-foreground">Produtos da Cantina</p>
-              </div>
-            </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          </div>
-        </header>
-
-        <main className="flex-1 pt-16">
-          <ControleEstoque />
-        </main>
-
-        <SystemSwitcher />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }

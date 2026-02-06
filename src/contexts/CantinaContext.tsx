@@ -13,10 +13,11 @@ interface CantinaContextType {
   removerCliente: (clienteId: string) => void;
   
   // Produto actions
-  adicionarProduto: (codigo: string, nome: string, preco: number, estoqueInicial: number, estoqueMinimo: number) => void;
+  adicionarProduto: (codigo: string, nome: string, preco: number, estoqueInicial: number, estoqueMinimo: number, fotoUrl?: string) => void;
   entradaEstoque: (produtoId: string, quantidade: number, descricao: string) => void;
   saidaEstoque: (produtoId: string, quantidade: number, descricao: string, clienteId?: string) => void;
   removerProduto: (produtoId: string) => void;
+  atualizarFotoProduto: (produtoId: string, fotoUrl: string) => void;
   
   // Colaborador actions
   adicionarColaborador: (nome: string, cargo: string) => void;
@@ -116,7 +117,7 @@ export const CantinaProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Produto actions
-  const adicionarProduto = (codigo: string, nome: string, preco: number, estoqueInicial: number, estoqueMinimo: number) => {
+  const adicionarProduto = (codigo: string, nome: string, preco: number, estoqueInicial: number, estoqueMinimo: number, fotoUrl?: string) => {
     const novoProduto: Produto = {
       id: generateId(),
       codigo,
@@ -124,6 +125,7 @@ export const CantinaProvider = ({ children }: { children: ReactNode }) => {
       preco,
       estoqueAtual: estoqueInicial,
       estoqueMinimo,
+      fotoUrl,
       dataCadastro: new Date(),
       historico: estoqueInicial > 0 ? [{
         id: generateId(),
@@ -134,6 +136,15 @@ export const CantinaProvider = ({ children }: { children: ReactNode }) => {
       }] : [],
     };
     setProdutos(prev => [...prev, novoProduto]);
+  };
+
+  const atualizarFotoProduto = (produtoId: string, fotoUrl: string) => {
+    setProdutos(prev => prev.map(produto => {
+      if (produto.id === produtoId) {
+        return { ...produto, fotoUrl };
+      }
+      return produto;
+    }));
   };
 
   const entradaEstoque = (produtoId: string, quantidade: number, descricao: string) => {
@@ -318,6 +329,7 @@ export const CantinaProvider = ({ children }: { children: ReactNode }) => {
       entradaEstoque,
       saidaEstoque,
       removerProduto,
+      atualizarFotoProduto,
       adicionarColaborador,
       adicionarDebitoColaborador,
       registrarPagamentoColaborador,
