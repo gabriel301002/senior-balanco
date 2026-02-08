@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useCantinaContext } from '@/contexts/CantinaContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown, Filter } from 'lucide-react';
+import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DashboardPasswordGate from '@/components/DashboardPasswordGate';
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -13,7 +14,7 @@ const meses = [
 
 const anos = [2024, 2025, 2026, 2027];
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const { getDashboardData, clientes } = useCantinaContext();
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
@@ -22,21 +23,16 @@ const Dashboard = () => {
   const dados = getDashboardData(mesSelecionado, anoSelecionado);
   const saldoLiquido = dados.creditosMes - dados.debitosMes;
 
-  // Clientes com créditos manuais no mês selecionado
   const clientesComCreditos = clientes
     .map(cliente => {
       const creditosManuais = cliente.historico.filter(h => {
         const data = new Date(h.data);
-        return h.tipo === 'credito' && 
-               data.getMonth() === mesSelecionado && 
+        return h.tipo === 'credito' &&
+               data.getMonth() === mesSelecionado &&
                data.getFullYear() === anoSelecionado;
       });
       const totalCreditos = creditosManuais.reduce((acc, m) => acc + m.valor, 0);
-      return {
-        ...cliente,
-        creditosManuais,
-        totalCreditos
-      };
+      return { ...cliente, creditosManuais, totalCreditos };
     })
     .filter(c => c.creditosManuais.length > 0)
     .sort((a, b) => b.totalCreditos - a.totalCreditos);
@@ -49,7 +45,6 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground">Dashboard Geral & Relatórios</h1>
           <p className="text-muted-foreground">Visão consolidada da cantina</p>
         </div>
-
         <div className="flex gap-3">
           <Select value={mesSelecionado.toString()} onValueChange={(v) => setMesSelecionado(parseInt(v))}>
             <SelectTrigger className="w-[140px] bg-secondary border-border text-foreground">
@@ -63,7 +58,6 @@ const Dashboard = () => {
               ))}
             </SelectContent>
           </Select>
-
           <Select value={anoSelecionado.toString()} onValueChange={(v) => setAnoSelecionado(parseInt(v))}>
             <SelectTrigger className="w-[100px] bg-secondary border-border text-foreground">
               <SelectValue placeholder="Ano" />
@@ -92,7 +86,6 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-products/20">
@@ -104,7 +97,6 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="p-3 rounded-xl bg-success/20">
@@ -116,7 +108,6 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-4 flex items-center gap-4">
             <div className={cn("p-3 rounded-xl", saldoLiquido >= 0 ? "bg-success/20" : "bg-destructive/20")}>
@@ -124,10 +115,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Saldo Líquido</p>
-              <p className={cn(
-                "text-2xl font-bold",
-                saldoLiquido >= 0 ? "text-success" : "text-destructive"
-              )}>
+              <p className={cn("text-2xl font-bold", saldoLiquido >= 0 ? "text-success" : "text-destructive")}>
                 R$ {saldoLiquido.toFixed(2)}
               </p>
             </div>
@@ -135,7 +123,7 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Tabs para alternar entre visualizações */}
+      {/* Tabs */}
       <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="w-full">
         <TabsList className="w-full grid grid-cols-2 bg-secondary">
           <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -149,7 +137,6 @@ const Dashboard = () => {
 
         <TabsContent value="resumo" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Top Produtos */}
             <Card className="bg-card shadow-card border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -173,10 +160,10 @@ const Dashboard = () => {
                         <div className="flex-1">
                           <p className="font-medium text-foreground">{item.nome}</p>
                           <div className="h-2 bg-secondary rounded-full mt-1 overflow-hidden">
-                            <div 
+                            <div
                               className="h-full bg-products rounded-full transition-all"
-                              style={{ 
-                                width: `${(item.vendas / Math.max(...dados.topProdutos.map(p => p.vendas))) * 100}%` 
+                              style={{
+                                width: `${(item.vendas / Math.max(...dados.topProdutos.map(p => p.vendas))) * 100}%`
                               }}
                             />
                           </div>
@@ -189,7 +176,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Resumo Financeiro */}
             <Card className="bg-card shadow-card border-border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
@@ -207,7 +193,6 @@ const Dashboard = () => {
                   </div>
                   <span className="text-xl font-bold text-success">R$ {dados.creditosMes.toFixed(2)}</span>
                 </div>
-
                 <div className="p-4 rounded-xl bg-destructive/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-destructive/20">
@@ -217,7 +202,6 @@ const Dashboard = () => {
                   </div>
                   <span className="text-xl font-bold text-destructive">R$ {dados.debitosMes.toFixed(2)}</span>
                 </div>
-
                 <div className="p-4 rounded-xl bg-primary/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-primary/20">
@@ -227,14 +211,10 @@ const Dashboard = () => {
                   </div>
                   <span className="text-xl font-bold text-primary">{dados.transacoesMes}</span>
                 </div>
-
                 <div className="pt-4 border-t border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-medium text-foreground">Saldo Total Clientes</span>
-                    <span className={cn(
-                      "text-2xl font-bold",
-                      dados.saldoTotal >= 0 ? "text-success" : "text-destructive"
-                    )}>
+                    <span className={cn("text-2xl font-bold", dados.saldoTotal >= 0 ? "text-success" : "text-destructive")}>
                       R$ {dados.saldoTotal.toFixed(2)}
                     </span>
                   </div>
@@ -283,7 +263,6 @@ const Dashboard = () => {
                           <p className="text-xl font-bold text-success">R$ {cliente.totalCreditos.toFixed(2)}</p>
                         </div>
                       </div>
-                      
                       <div className="border-t border-border pt-3 space-y-2">
                         {cliente.creditosManuais.map((mov) => (
                           <div key={mov.id} className="flex items-center justify-between text-sm">
@@ -306,6 +285,14 @@ const Dashboard = () => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const Dashboard = () => {
+  return (
+    <DashboardPasswordGate>
+      <DashboardContent />
+    </DashboardPasswordGate>
   );
 };
 
