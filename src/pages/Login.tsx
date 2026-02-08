@@ -12,9 +12,8 @@ const Login = () => {
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
-  const [modo, setModo] = useState<'login' | 'cadastro'>('login');
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -27,43 +26,21 @@ const Login = () => {
     setCarregando(true);
 
     try {
-      if (modo === 'login') {
-        const { error } = await signIn(email, senha);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast.error('Email ou senha incorretos');
-          } else if (error.message.includes('Email not confirmed')) {
-            toast.error('Por favor, confirme seu email antes de entrar');
-          } else {
-            toast.error(error.message);
-          }
+      const { error } = await signIn(email, senha);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos');
         } else {
-          toast.success('Login realizado com sucesso!');
-          navigate('/dashboard');
+          toast.error(error.message);
         }
       } else {
-        if (senha.length < 6) {
-          toast.error('A senha deve ter pelo menos 6 caracteres');
-          setCarregando(false);
-          return;
-        }
-        
-        const { error } = await signUp(email, senha);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Este email já está cadastrado');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Cadastro realizado! Verifique seu email para confirmar.');
-          setModo('login');
-        }
+        toast.success('Login realizado com sucesso!');
+        navigate('/dashboard');
       }
-    } catch (err) {
+    } catch {
       toast.error('Ocorreu um erro. Tente novamente.');
     }
-    
+
     setCarregando(false);
   };
 
@@ -71,10 +48,9 @@ const Login = () => {
     <div className="min-h-screen flex">
       {/* Lado Esquerdo - Branding */}
       <div className="hidden lg:flex lg:w-1/2 gradient-login flex-col items-center justify-center p-12 relative overflow-hidden">
-        {/* Efeito de brilho */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
-        
+
         <div className="relative z-10 text-center">
           <h1 className="text-5xl font-bold text-foreground mb-4 tracking-tight">
             Passo a Passo
@@ -99,13 +75,9 @@ const Login = () => {
           </div>
 
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground">
-              {modo === 'login' ? 'Acesso ao Sistema' : 'Criar Conta'}
-            </h2>
+            <h2 className="text-3xl font-bold text-foreground">Acesso ao Sistema</h2>
             <p className="mt-2 text-muted-foreground">
-              {modo === 'login' 
-                ? 'Entre com suas credenciais para continuar' 
-                : 'Preencha os dados para criar sua conta'}
+              Entre com suas credenciais para continuar
             </p>
           </div>
 
@@ -154,24 +126,13 @@ const Login = () => {
               disabled={carregando}
               className="w-full h-12 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
             >
-              {carregando ? 'Aguarde...' : modo === 'login' ? 'Entrar' : 'Criar Conta'}
+              {carregando ? 'Aguarde...' : 'Entrar'}
             </Button>
           </form>
 
-          <div className="text-center space-y-4">
-            <button
-              onClick={() => setModo(modo === 'login' ? 'cadastro' : 'login')}
-              className="text-primary hover:underline"
-            >
-              {modo === 'login' 
-                ? 'Não tem conta? Criar agora' 
-                : 'Já tem conta? Fazer login'}
-            </button>
-            
-            <p className="text-sm text-muted-foreground">
-              Acesso restrito aos responsáveis autorizados.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            Acesso restrito aos responsáveis autorizados.
+          </p>
         </div>
       </div>
     </div>
