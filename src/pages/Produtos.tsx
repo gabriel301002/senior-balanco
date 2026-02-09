@@ -523,7 +523,7 @@ const Produtos = () => {
                   <SelectContent>
                     {vendaCompradorTipo === 'cliente' ? (
                       clientes.length === 0 ? (
-                        <SelectItem value="" disabled>Nenhum cliente cadastrado</SelectItem>
+                        <SelectItem value="__none__" disabled>Nenhum cliente cadastrado</SelectItem>
                       ) : (
                         clientes.map(c => (
                           <SelectItem key={c.id} value={c.id}>
@@ -533,7 +533,7 @@ const Produtos = () => {
                       )
                     ) : (
                       colaboradores.length === 0 ? (
-                        <SelectItem value="" disabled>Nenhum colaborador cadastrado</SelectItem>
+                        <SelectItem value="__none__" disabled>Nenhum colaborador cadastrado</SelectItem>
                       ) : (
                         colaboradores.map(c => (
                           <SelectItem key={c.id} value={c.id}>
