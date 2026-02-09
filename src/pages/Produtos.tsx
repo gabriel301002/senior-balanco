@@ -366,9 +366,9 @@ const Produtos = () => {
                             alt={produto.nome}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <LinkIcon className="h-5 w-5 text-white" />
-                          </div>
+                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <Upload className="h-5 w-5 text-white" />
+                           </div>
                         </>
                       ) : (
                         <>
