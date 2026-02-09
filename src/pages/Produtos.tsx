@@ -257,15 +257,37 @@ const Produtos = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Link da Foto (opcional)
+                  <Upload className="h-4 w-4" />
+                  Foto do Produto (opcional)
                 </Label>
-                <Input
-                  placeholder="https://exemplo.com/foto.jpg"
-                  value={novoProduto.fotoUrl}
-                  onChange={(e) => setNovoProduto(prev => ({ ...prev, fotoUrl: e.target.value }))}
-                  className="bg-secondary border-border text-foreground"
+                <input
+                  ref={fileInputNovoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadFotoNovo(file);
+                  }}
                 />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputNovoRef.current?.click()}
+                    disabled={uploadingFotoNovo}
+                    className="border-border text-foreground flex-1"
+                  >
+                    {uploadingFotoNovo ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-2" /> Escolher Foto</>
+                    )}
+                  </Button>
+                  {novoProduto.fotoUrl && (
+                    <img src={novoProduto.fotoUrl} alt="Preview" className="w-10 h-10 rounded object-cover border border-border" />
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
