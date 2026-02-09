@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCantinaContext } from '@/contexts/CantinaContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon, Upload, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { uploadImage } from '@/lib/imageUpload';
 
 const Produtos = () => {
   const { produtos, clientes, colaboradores, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto, realizarVenda, adicionarDebitoColaborador, atualizarFotoProduto } = useCantinaContext();
@@ -41,7 +42,10 @@ const Produtos = () => {
 
   // Editar foto
   const [dialogFoto, setDialogFoto] = useState(false);
-  const [novaFotoUrl, setNovaFotoUrl] = useState('');
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingFotoNovo, setUploadingFotoNovo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputNovoRef = useRef<HTMLInputElement>(null);
 
   const produtosFiltrados = produtos.filter(p => 
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -68,17 +72,33 @@ const Produtos = () => {
     setDialogAberto(false);
   };
 
-  const handleSalvarFoto = () => {
-    if (!produtoSelecionado) return;
-    atualizarFotoProduto(produtoSelecionado, novaFotoUrl);
-    toast.success('Foto atualizada!');
+  const handleUploadFoto = async (file: File, produtoId: string) => {
+    setUploadingFoto(true);
+    const url = await uploadImage(file, 'produto-fotos');
+    if (url) {
+      atualizarFotoProduto(produtoId, url);
+      toast.success('Foto atualizada!');
+    } else {
+      toast.error('Erro ao enviar foto');
+    }
+    setUploadingFoto(false);
     setDialogFoto(false);
-    setNovaFotoUrl('');
   };
 
-  const abrirEditarFoto = (produtoId: string, fotoAtual?: string) => {
+  const handleUploadFotoNovo = async (file: File) => {
+    setUploadingFotoNovo(true);
+    const url = await uploadImage(file, 'produto-fotos');
+    if (url) {
+      setNovoProduto(prev => ({ ...prev, fotoUrl: url }));
+      toast.success('Foto enviada!');
+    } else {
+      toast.error('Erro ao enviar foto');
+    }
+    setUploadingFotoNovo(false);
+  };
+
+  const abrirEditarFoto = (produtoId: string) => {
     setProdutoSelecionado(produtoId);
-    setNovaFotoUrl(fotoAtual || '');
     setDialogFoto(true);
   };
 
@@ -237,15 +257,37 @@ const Produtos = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-foreground flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Link da Foto (opcional)
+                  <Upload className="h-4 w-4" />
+                  Foto do Produto (opcional)
                 </Label>
-                <Input
-                  placeholder="https://exemplo.com/foto.jpg"
-                  value={novoProduto.fotoUrl}
-                  onChange={(e) => setNovoProduto(prev => ({ ...prev, fotoUrl: e.target.value }))}
-                  className="bg-secondary border-border text-foreground"
+                <input
+                  ref={fileInputNovoRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleUploadFotoNovo(file);
+                  }}
                 />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputNovoRef.current?.click()}
+                    disabled={uploadingFotoNovo}
+                    className="border-border text-foreground flex-1"
+                  >
+                    {uploadingFotoNovo ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                    ) : (
+                      <><Upload className="h-4 w-4 mr-2" /> Escolher Foto</>
+                    )}
+                  </Button>
+                  {novoProduto.fotoUrl && (
+                    <img src={novoProduto.fotoUrl} alt="Preview" className="w-10 h-10 rounded object-cover border border-border" />
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -311,7 +353,7 @@ const Produtos = () => {
                   {/* Header com foto e ações */}
                   <div className="flex items-start gap-3">
                     <button
-                      onClick={() => abrirEditarFoto(produto.id, produto.fotoUrl)}
+                      onClick={() => abrirEditarFoto(produto.id)}
                       className={cn(
                         "w-16 h-16 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group cursor-pointer transition-all hover:ring-2 hover:ring-products",
                         estoqueZero ? "bg-destructive/20" : "bg-products/20"
@@ -324,9 +366,9 @@ const Produtos = () => {
                             alt={produto.nome}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <LinkIcon className="h-5 w-5 text-white" />
-                          </div>
+                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <Upload className="h-5 w-5 text-white" />
+                           </div>
                         </>
                       ) : (
                         <>
@@ -335,8 +377,8 @@ const Produtos = () => {
                             estoqueZero ? "text-destructive" : "text-products"
                           )} />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <LinkIcon className="h-5 w-5 text-white" />
-                          </div>
+                             <Upload className="h-5 w-5 text-white" />
+                           </div>
                         </>
                       )}
                     </button>
@@ -481,7 +523,7 @@ const Produtos = () => {
                   <SelectContent>
                     {vendaCompradorTipo === 'cliente' ? (
                       clientes.length === 0 ? (
-                        <SelectItem value="" disabled>Nenhum cliente cadastrado</SelectItem>
+                        <SelectItem value="__none__" disabled>Nenhum cliente cadastrado</SelectItem>
                       ) : (
                         clientes.map(c => (
                           <SelectItem key={c.id} value={c.id}>
@@ -491,7 +533,7 @@ const Produtos = () => {
                       )
                     ) : (
                       colaboradores.length === 0 ? (
-                        <SelectItem value="" disabled>Nenhum colaborador cadastrado</SelectItem>
+                        <SelectItem value="__none__" disabled>Nenhum colaborador cadastrado</SelectItem>
                       ) : (
                         colaboradores.map(c => (
                           <SelectItem key={c.id} value={c.id}>
@@ -635,39 +677,48 @@ const Produtos = () => {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <LinkIcon className="h-5 w-5" />
+              <Upload className="h-5 w-5" />
               Adicionar/Editar Foto
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-foreground">Link da Imagem</Label>
-              <Input
-                placeholder="https://exemplo.com/foto.jpg"
-                value={novaFotoUrl}
-                onChange={(e) => setNovaFotoUrl(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && produtoSelecionado) handleUploadFoto(file, produtoSelecionado);
+              }}
+            />
+            <div className="flex flex-col items-center gap-4">
+              {(() => {
+                const prod = produtos.find(p => p.id === produtoSelecionado);
+                return prod?.fotoUrl ? (
+                  <img src={prod.fotoUrl} alt="Foto atual" className="w-32 h-32 object-cover rounded-xl border border-border" />
+                ) : (
+                  <div className="w-32 h-32 rounded-xl bg-secondary flex items-center justify-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                );
+              })()}
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                className="bg-products hover:bg-products/90"
+              >
+                {uploadingFoto ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                ) : (
+                  <><Upload className="h-4 w-4 mr-2" /> Escolher Foto do Computador</>
+                )}
+              </Button>
             </div>
-            {novaFotoUrl && (
-              <div className="flex justify-center">
-                <img 
-                  src={novaFotoUrl} 
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded-xl border border-border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogFoto(false)} className="border-border text-foreground">
-              Cancelar
-            </Button>
-            <Button onClick={handleSalvarFoto} className="bg-products hover:bg-products/90">
-              Salvar
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
