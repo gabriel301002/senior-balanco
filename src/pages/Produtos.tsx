@@ -353,7 +353,7 @@ const Produtos = () => {
                   {/* Header com foto e ações */}
                   <div className="flex items-start gap-3">
                     <button
-                      onClick={() => abrirEditarFoto(produto.id, produto.fotoUrl)}
+                      onClick={() => abrirEditarFoto(produto.id)}
                       className={cn(
                         "w-16 h-16 rounded-xl flex items-center justify-center shrink-0 overflow-hidden relative group cursor-pointer transition-all hover:ring-2 hover:ring-products",
                         estoqueZero ? "bg-destructive/20" : "bg-products/20"
