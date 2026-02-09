@@ -42,7 +42,10 @@ const Produtos = () => {
 
   // Editar foto
   const [dialogFoto, setDialogFoto] = useState(false);
-  const [novaFotoUrl, setNovaFotoUrl] = useState('');
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingFotoNovo, setUploadingFotoNovo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputNovoRef = useRef<HTMLInputElement>(null);
 
   const produtosFiltrados = produtos.filter(p => 
     p.nome.toLowerCase().includes(busca.toLowerCase()) ||
