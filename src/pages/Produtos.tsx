@@ -72,17 +72,33 @@ const Produtos = () => {
     setDialogAberto(false);
   };
 
-  const handleSalvarFoto = () => {
-    if (!produtoSelecionado) return;
-    atualizarFotoProduto(produtoSelecionado, novaFotoUrl);
-    toast.success('Foto atualizada!');
+  const handleUploadFoto = async (file: File, produtoId: string) => {
+    setUploadingFoto(true);
+    const url = await uploadImage(file, 'produto-fotos');
+    if (url) {
+      atualizarFotoProduto(produtoId, url);
+      toast.success('Foto atualizada!');
+    } else {
+      toast.error('Erro ao enviar foto');
+    }
+    setUploadingFoto(false);
     setDialogFoto(false);
-    setNovaFotoUrl('');
   };
 
-  const abrirEditarFoto = (produtoId: string, fotoAtual?: string) => {
+  const handleUploadFotoNovo = async (file: File) => {
+    setUploadingFotoNovo(true);
+    const url = await uploadImage(file, 'produto-fotos');
+    if (url) {
+      setNovoProduto(prev => ({ ...prev, fotoUrl: url }));
+      toast.success('Foto enviada!');
+    } else {
+      toast.error('Erro ao enviar foto');
+    }
+    setUploadingFotoNovo(false);
+  };
+
+  const abrirEditarFoto = (produtoId: string) => {
     setProdutoSelecionado(produtoId);
-    setNovaFotoUrl(fotoAtual || '');
     setDialogFoto(true);
   };
 
