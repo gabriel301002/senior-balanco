@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useCantinaContext } from '@/contexts/CantinaContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Package, Plus, Search, ArrowUpCircle, ArrowDownCircle, History, Trash2, AlertTriangle, ShoppingCart, Minus, ImageIcon, Upload, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { uploadImage } from '@/lib/imageUpload';
 
 const Produtos = () => {
   const { produtos, clientes, colaboradores, adicionarProduto, entradaEstoque, saidaEstoque, removerProduto, realizarVenda, adicionarDebitoColaborador, atualizarFotoProduto } = useCantinaContext();
