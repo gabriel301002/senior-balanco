@@ -677,39 +677,48 @@ const Produtos = () => {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <LinkIcon className="h-5 w-5" />
+              <Upload className="h-5 w-5" />
               Adicionar/Editar Foto
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-foreground">Link da Imagem</Label>
-              <Input
-                placeholder="https://exemplo.com/foto.jpg"
-                value={novaFotoUrl}
-                onChange={(e) => setNovaFotoUrl(e.target.value)}
-                className="bg-secondary border-border text-foreground"
-              />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file && produtoSelecionado) handleUploadFoto(file, produtoSelecionado);
+              }}
+            />
+            <div className="flex flex-col items-center gap-4">
+              {(() => {
+                const prod = produtos.find(p => p.id === produtoSelecionado);
+                return prod?.fotoUrl ? (
+                  <img src={prod.fotoUrl} alt="Foto atual" className="w-32 h-32 object-cover rounded-xl border border-border" />
+                ) : (
+                  <div className="w-32 h-32 rounded-xl bg-secondary flex items-center justify-center">
+                    <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                );
+              })()}
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                className="bg-products hover:bg-products/90"
+              >
+                {uploadingFoto ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                ) : (
+                  <><Upload className="h-4 w-4 mr-2" /> Escolher Foto do Computador</>
+                )}
+              </Button>
             </div>
-            {novaFotoUrl && (
-              <div className="flex justify-center">
-                <img 
-                  src={novaFotoUrl} 
-                  alt="Preview"
-                  className="w-32 h-32 object-cover rounded-xl border border-border"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogFoto(false)} className="border-border text-foreground">
-              Cancelar
-            </Button>
-            <Button onClick={handleSalvarFoto} className="bg-products hover:bg-products/90">
-              Salvar
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
