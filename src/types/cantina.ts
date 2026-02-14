@@ -24,6 +24,7 @@ export interface Produto {
   preco: number;
   estoqueAtual: number;
   estoqueMinimo: number;
+  precoColaborador?: number;
   fotoUrl?: string;
   dataCadastro: Date;
   historico: MovimentacaoEstoque[];

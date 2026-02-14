@@ -23,6 +23,7 @@ export const useSupabaseProdutos = () => {
         codigo: p.codigo,
         nome: p.nome,
         preco: Number(p.preco),
+        precoColaborador: p.preco_colaborador ? Number(p.preco_colaborador) : undefined,
         estoqueAtual: Number(p.estoque_atual),
         estoqueMinimo: Number(p.estoque_minimo),
         fotoUrl: p.foto_url || undefined,
