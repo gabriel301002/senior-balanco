@@ -178,7 +178,8 @@ const Produtos = () => {
       // Venda para colaborador
       const colaborador = colaboradores.find(c => c.id === vendaCompradorId);
       if (colaborador) {
-        const valorTotal = produto.preco * vendaQuantidade;
+        const precoUnitario = produto.precoColaborador ?? produto.preco;
+        const valorTotal = precoUnitario * vendaQuantidade;
         saidaEstoque(produtoSelecionado, vendaQuantidade, `Venda para ${colaborador.nome}`);
         adicionarDebitoColaborador(vendaCompradorId, valorTotal, `Compra: ${vendaQuantidade}x ${produto.nome}`);
         toast.success(`Venda realizada para ${colaborador.nome}!`);
@@ -188,7 +189,12 @@ const Produtos = () => {
   };
 
   const produtoVenda = produtos.find(p => p.id === produtoSelecionado);
-  const valorTotalVenda = produtoVenda ? produtoVenda.preco * vendaQuantidade : 0;
+  const precoVenda = produtoVenda
+    ? (vendaCompradorTipo === 'colaborador' && produtoVenda.precoColaborador
+        ? produtoVenda.precoColaborador
+        : produtoVenda.preco)
+    : 0;
+  const valorTotalVenda = precoVenda * vendaQuantidade;
 
   const produtoHistorico = produtos.find(p => p.id === produtoSelecionado);
 
