@@ -1,12 +1,13 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Users, Package, UserCog, LayoutDashboard, LogOut, Menu, ShoppingCart } from 'lucide-react';
+import { Users, Package, UserCog, LayoutDashboard, LogOut, Menu, ShoppingCart, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useSystemContext } from '@/contexts/SystemContext';
 import SystemSwitcher from '@/components/SystemSwitcher';
 import EstoqueMantimentos from '@/pages/EstoqueMantimentos';
+import ControleColaboradores from '@/pages/ControleColaboradores';
 import { useAuth } from '@/hooks/useAuth';
 
 const navItemsCantina = [
@@ -29,7 +30,6 @@ const MainLayout = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    // Redirecionar para clientes se estiver na raiz do dashboard
     if (location.pathname === '/dashboard') {
       navigate('/dashboard/clientes');
     }
@@ -52,19 +52,14 @@ const MainLayout = () => {
     );
   }
 
-  // Se estiver no modo mantimentos
+  // Mantimentos mode
   if (mode === 'mantimentos') {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <header className="fixed top-0 left-0 right-0 z-50 bg-collaborators/10 backdrop-blur-lg border-b border-border">
           <div className="container mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleMenu}
-                className="text-foreground hover:bg-collaborators/10"
-              >
+              <Button variant="ghost" size="icon" onClick={toggleMenu} className="text-foreground hover:bg-collaborators/10">
                 <Menu className="h-5 w-5" />
               </Button>
               <div className="w-10 h-10 rounded-xl bg-collaborators/20 flex items-center justify-center">
@@ -75,41 +70,53 @@ const MainLayout = () => {
                 <p className="text-xs text-muted-foreground">Insumos da Empresa</p>
               </div>
             </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <LogOut className="h-4 w-4 mr-2" />Sair
             </Button>
           </div>
         </header>
-
-        <main className="flex-1 pt-16">
-          <EstoqueMantimentos />
-        </main>
-
+        <main className="flex-1 pt-16"><EstoqueMantimentos /></main>
         <SystemSwitcher />
       </div>
     );
   }
 
-  // Layout Cantina (original)
+  // Controle Colaboradores mode
+  if (mode === 'controle') {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-primary/10 backdrop-blur-lg border-b border-border">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={toggleMenu} className="text-foreground hover:bg-primary/10">
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <ClipboardList className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-bold text-foreground">Controle Colaboradores</h1>
+                <p className="text-xs text-muted-foreground">Unidade Senior</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+              <LogOut className="h-4 w-4 mr-2" />Sair
+            </Button>
+          </div>
+        </header>
+        <main className="flex-1 pt-16"><ControleColaboradores /></main>
+        <SystemSwitcher />
+      </div>
+    );
+  }
+
+  // Cantina mode (default)
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMenu}
-              className="text-foreground hover:bg-primary/10"
-            >
+            <Button variant="ghost" size="icon" onClick={toggleMenu} className="text-foreground hover:bg-primary/10">
               <Menu className="h-5 w-5" />
             </Button>
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -120,51 +127,31 @@ const MainLayout = () => {
               <p className="text-xs text-muted-foreground">Passo a Passo</p>
             </div>
           </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
+          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+            <LogOut className="h-4 w-4 mr-2" />Sair
           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-16 pb-20">
-        <Outlet />
-      </main>
+      <main className="flex-1 pt-16 pb-20"><Outlet /></main>
 
-      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             {navItemsCantina.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
-              
               return (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={cn(
                     "flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-xl transition-all",
-                    isActive 
-                      ? "bg-primary/10" 
-                      : "hover:bg-accent"
+                    isActive ? "bg-primary/10" : "hover:bg-accent"
                   )}
                 >
-                  <Icon className={cn(
-                    "h-5 w-5 transition-colors",
-                    isActive ? item.color : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "text-xs font-medium transition-colors",
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  )}>
+                  <Icon className={cn("h-5 w-5 transition-colors", isActive ? item.color : "text-muted-foreground")} />
+                  <span className={cn("text-xs font-medium transition-colors", isActive ? "text-foreground" : "text-muted-foreground")}>
                     {item.label}
                   </span>
                 </button>
@@ -174,7 +161,6 @@ const MainLayout = () => {
         </div>
       </nav>
 
-      {/* System Switcher Modal */}
       <SystemSwitcher />
     </div>
   );

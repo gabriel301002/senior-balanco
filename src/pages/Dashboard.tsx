@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useCantinaContext } from '@/contexts/CantinaContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown } from 'lucide-react';
+import { Users, Package, CreditCard, TrendingUp, BarChart3, DollarSign, ArrowUpDown, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardPasswordGate from '@/components/DashboardPasswordGate';
@@ -15,14 +15,57 @@ const meses = [
 const anos = [2024, 2025, 2026, 2027];
 
 const DashboardContent = () => {
-  const { getDashboardData, clientes } = useCantinaContext();
+  const { getDashboardData, clientes, colaboradores } = useCantinaContext();
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
   const [abaAtiva, setAbaAtiva] = useState('resumo');
 
   const dados = getDashboardData(mesSelecionado, anoSelecionado);
-  const saldoLiquido = dados.creditosMes - dados.debitosMes;
 
+  // Calculate client-only credits and debits
+  const movimentacoesClientesMes = clientes.flatMap(c => c.historico.filter(h => {
+    const data = new Date(h.data);
+    return data.getMonth() === mesSelecionado && data.getFullYear() === anoSelecionado;
+  }));
+
+  const creditosClientesMes = movimentacoesClientesMes
+    .filter(m => m.tipo === 'credito')
+    .reduce((acc, m) => acc + m.valor, 0);
+
+  const debitosClientesMes = movimentacoesClientesMes
+    .filter(m => m.tipo === 'debito')
+    .reduce((acc, m) => acc + m.valor, 0);
+
+  const saldoLiquidoClientes = creditosClientesMes - debitosClientesMes;
+
+  // Collaborator debits for 3rd tab
+  const movimentacoesColabMes = colaboradores.flatMap(c => c.historico.filter(h => {
+    const data = new Date(h.data);
+    return data.getMonth() === mesSelecionado && data.getFullYear() === anoSelecionado;
+  }));
+
+  const debitosColabMes = movimentacoesColabMes
+    .filter(m => m.tipo === 'debito')
+    .reduce((acc, m) => acc + m.valor, 0);
+
+  const pagamentosColabMes = movimentacoesColabMes
+    .filter(m => m.tipo === 'pagamento')
+    .reduce((acc, m) => acc + m.valor, 0);
+
+  const colaboradoresComDebitos = colaboradores
+    .map(colab => {
+      const movsMes = colab.historico.filter(h => {
+        const data = new Date(h.data);
+        return data.getMonth() === mesSelecionado && data.getFullYear() === anoSelecionado;
+      });
+      const totalDebitos = movsMes.filter(m => m.tipo === 'debito').reduce((acc, m) => acc + m.valor, 0);
+      const totalPagamentos = movsMes.filter(m => m.tipo === 'pagamento').reduce((acc, m) => acc + m.valor, 0);
+      return { ...colab, movsMes, totalDebitos, totalPagamentos };
+    })
+    .filter(c => c.movsMes.length > 0)
+    .sort((a, b) => b.totalDebitos - a.totalDebitos);
+
+  // Manual credits
   const clientesComCreditos = clientes
     .map(cliente => {
       const creditosManuais = cliente.historico.filter(h => {
@@ -36,6 +79,8 @@ const DashboardContent = () => {
     })
     .filter(c => c.creditosManuais.length > 0)
     .sort((a, b) => b.totalCreditos - a.totalCreditos);
+
+  const totalCreditosManuais = clientesComCreditos.reduce((acc, c) => acc + c.totalCreditos, 0);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
@@ -103,20 +148,20 @@ const DashboardContent = () => {
               <CreditCard className="h-6 w-6 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Créditos do Mês</p>
-              <p className="text-2xl font-bold text-success">R$ {dados.creditosMes.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Créditos Clientes</p>
+              <p className="text-2xl font-bold text-success">R$ {creditosClientesMes.toFixed(2)}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-card shadow-card border-border">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className={cn("p-3 rounded-xl", saldoLiquido >= 0 ? "bg-success/20" : "bg-destructive/20")}>
-              <TrendingUp className={cn("h-6 w-6", saldoLiquido >= 0 ? "text-success" : "text-destructive")} />
+            <div className={cn("p-3 rounded-xl", saldoLiquidoClientes >= 0 ? "bg-success/20" : "bg-destructive/20")}>
+              <TrendingUp className={cn("h-6 w-6", saldoLiquidoClientes >= 0 ? "text-success" : "text-destructive")} />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Saldo Líquido</p>
-              <p className={cn("text-2xl font-bold", saldoLiquido >= 0 ? "text-success" : "text-destructive")}>
-                R$ {saldoLiquido.toFixed(2)}
+              <p className={cn("text-2xl font-bold", saldoLiquidoClientes >= 0 ? "text-success" : "text-destructive")}>
+                R$ {saldoLiquidoClientes.toFixed(2)}
               </p>
             </div>
           </CardContent>
@@ -125,13 +170,17 @@ const DashboardContent = () => {
 
       {/* Tabs */}
       <Tabs value={abaAtiva} onValueChange={setAbaAtiva} className="w-full">
-        <TabsList className="w-full grid grid-cols-2 bg-secondary">
-          <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsList className="w-full grid grid-cols-3 bg-secondary">
+          <TabsTrigger value="resumo" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
             Resumo Geral
           </TabsTrigger>
-          <TabsTrigger value="creditos" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Créditos Manuais ({clientesComCreditos.length})
+          <TabsTrigger value="creditos" className="data-[state=active]:bg-success data-[state=active]:text-success-foreground text-xs sm:text-sm">
+            <CreditCard className="h-4 w-4 mr-1 hidden sm:inline" />
+            Créditos ({clientesComCreditos.length})
+          </TabsTrigger>
+          <TabsTrigger value="colaboradores" className="data-[state=active]:bg-collaborators data-[state=active]:text-collaborators-foreground text-xs sm:text-sm">
+            <UserCog className="h-4 w-4 mr-1 hidden sm:inline" />
+            Colaboradores
           </TabsTrigger>
         </TabsList>
 
@@ -180,7 +229,7 @@ const DashboardContent = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
                   <DollarSign className="h-5 w-5 text-primary" />
-                  Resumo Financeiro Mensal
+                  Resumo Financeiro – Clientes
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -191,7 +240,7 @@ const DashboardContent = () => {
                     </div>
                     <span className="font-medium text-foreground">Total de Créditos</span>
                   </div>
-                  <span className="text-xl font-bold text-success">R$ {dados.creditosMes.toFixed(2)}</span>
+                  <span className="text-xl font-bold text-success">R$ {creditosClientesMes.toFixed(2)}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-destructive/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -200,7 +249,7 @@ const DashboardContent = () => {
                     </div>
                     <span className="font-medium text-foreground">Total de Débitos</span>
                   </div>
-                  <span className="text-xl font-bold text-destructive">R$ {dados.debitosMes.toFixed(2)}</span>
+                  <span className="text-xl font-bold text-destructive">R$ {debitosClientesMes.toFixed(2)}</span>
                 </div>
                 <div className="p-4 rounded-xl bg-primary/10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -209,7 +258,7 @@ const DashboardContent = () => {
                     </div>
                     <span className="font-medium text-foreground">Transações</span>
                   </div>
-                  <span className="text-xl font-bold text-primary">{dados.transacoesMes}</span>
+                  <span className="text-xl font-bold text-primary">{movimentacoesClientesMes.length}</span>
                 </div>
                 <div className="pt-4 border-t border-border">
                   <div className="flex items-center justify-between">
@@ -231,9 +280,12 @@ const DashboardContent = () => {
         <TabsContent value="creditos" className="mt-6">
           <Card className="bg-card shadow-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <CreditCard className="h-5 w-5 text-success" />
-                Clientes com Créditos Manuais em {meses[mesSelecionado]}/{anoSelecionado}
+              <CardTitle className="flex items-center justify-between text-foreground">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-success" />
+                  Créditos Manuais em {meses[mesSelecionado]}/{anoSelecionado}
+                </div>
+                <span className="text-xl font-bold text-success">Total: R$ {totalCreditosManuais.toFixed(2)}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -273,6 +325,82 @@ const DashboardContent = () => {
                               </span>
                             </div>
                             <span className="text-success font-medium">+ R$ {mov.valor.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="colaboradores" className="mt-6">
+          <Card className="bg-card shadow-card border-border">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-foreground">
+                <div className="flex items-center gap-2">
+                  <UserCog className="h-5 w-5 text-collaborators" />
+                  Débitos Colaboradores – {meses[mesSelecionado]}/{anoSelecionado}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total Débitos</p>
+                  <span className="text-xl font-bold text-destructive">R$ {debitosColabMes.toFixed(2)}</span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Summary */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-4 rounded-xl bg-destructive/10 flex items-center justify-between">
+                  <span className="font-medium text-foreground">Débitos</span>
+                  <span className="text-lg font-bold text-destructive">R$ {debitosColabMes.toFixed(2)}</span>
+                </div>
+                <div className="p-4 rounded-xl bg-success/10 flex items-center justify-between">
+                  <span className="font-medium text-foreground">Pagamentos</span>
+                  <span className="text-lg font-bold text-success">R$ {pagamentosColabMes.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {colaboradoresComDebitos.length === 0 ? (
+                <div className="text-center py-12">
+                  <UserCog className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhuma movimentação de colaborador neste período</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {colaboradoresComDebitos.map((colab) => (
+                    <div key={colab.id} className="p-4 rounded-xl bg-secondary/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-collaborators/20 flex items-center justify-center">
+                            <span className="text-collaborators font-bold">
+                              {colab.nome.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-foreground">{colab.nome}</h4>
+                            <p className="text-sm text-muted-foreground">{colab.cargo} • Débito total: R$ {colab.debito.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Débitos no mês</p>
+                          <p className="text-xl font-bold text-destructive">R$ {colab.totalDebitos.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <div className="border-t border-border pt-3 space-y-2">
+                        {colab.movsMes.map((mov) => (
+                          <div key={mov.id} className="flex items-center justify-between text-sm">
+                            <div>
+                              <span className="text-foreground">{mov.descricao}</span>
+                              <span className="text-muted-foreground ml-2">
+                                ({new Date(mov.data).toLocaleDateString('pt-BR')})
+                              </span>
+                            </div>
+                            <span className={cn("font-medium", mov.tipo === 'debito' ? 'text-destructive' : 'text-success')}>
+                              {mov.tipo === 'debito' ? '-' : '+'} R$ {mov.valor.toFixed(2)}
+                            </span>
                           </div>
                         ))}
                       </div>
