@@ -49,6 +49,7 @@ export type Database = {
           debito: number
           id: string
           nome: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           debito?: number
           id?: string
           nome: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -67,9 +69,48 @@ export type Database = {
           debito?: number
           id?: string
           nome?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      lancamentos_colaborador: {
+        Row: {
+          atestado: boolean | null
+          colaborador_id: string
+          created_at: string
+          data: string
+          id: string
+          observacao: string | null
+          tipo: string
+        }
+        Insert: {
+          atestado?: boolean | null
+          colaborador_id: string
+          created_at?: string
+          data: string
+          id?: string
+          observacao?: string | null
+          tipo: string
+        }
+        Update: {
+          atestado?: boolean | null
+          colaborador_id?: string
+          created_at?: string
+          data?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_colaborador_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mantimentos: {
         Row: {
