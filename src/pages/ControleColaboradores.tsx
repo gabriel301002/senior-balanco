@@ -4,15 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useSupabaseLancamentos, LancamentoColaborador, ColaboradorControle } from '@/hooks/useSupabaseLancamentos';
-import { Plus, ArrowLeft, Search, UserCog, AlertTriangle, Calendar, Clock, Umbrella, Briefcase, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, Search, UserCog, AlertTriangle, Calendar, Umbrella, Briefcase, Trash2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 const tipoLabels: Record<string, string> = {
   falta_justificada: 'Falta Justificada',
@@ -36,18 +38,23 @@ const tipoColors: Record<string, string> = {
 };
 
 const ControleColaboradores = () => {
-  const { colaboradores, loading, adicionarLancamento, removerLancamento } = useSupabaseLancamentos();
+  const { colaboradores, loading, adicionarLancamento, removerLancamento, fetchData } = useSupabaseLancamentos();
   const [busca, setBusca] = useState('');
   const [colaboradorSelecionado, setColaboradorSelecionado] = useState<ColaboradorControle | null>(null);
   const [dialogLancamento, setDialogLancamento] = useState(false);
+  const [dialogCadastro, setDialogCadastro] = useState(false);
   const [mesFiltro, setMesFiltro] = useState(new Date().getMonth());
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
 
-  // Form state
+  // Form state - lançamento
   const [tipoLancamento, setTipoLancamento] = useState<LancamentoColaborador['tipo'] | ''>('');
   const [dataLancamento, setDataLancamento] = useState('');
   const [atestado, setAtestado] = useState(false);
   const [observacao, setObservacao] = useState('');
+
+  // Form state - cadastro
+  const [novoNome, setNovoNome] = useState('');
+  const [novoCargo, setNovoCargo] = useState('');
 
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -62,6 +69,31 @@ const ControleColaboradores = () => {
     setObservacao('');
   };
 
+  const resetCadastroForm = () => {
+    setNovoNome('');
+    setNovoCargo('');
+  };
+
+  const handleCadastrarColaborador = async () => {
+    if (!novoNome.trim() || !novoCargo.trim()) {
+      toast.error('Preencha nome e cargo');
+      return;
+    }
+    await supabase.from('colaboradores').insert({ nome: novoNome.trim(), cargo: novoCargo.trim() });
+    toast.success('Colaborador cadastrado!');
+    resetCadastroForm();
+    setDialogCadastro(false);
+    await fetchData();
+  };
+
+  const handleRemoverColaborador = async (id: string) => {
+    await supabase.from('lancamentos_colaborador').delete().eq('colaborador_id', id);
+    await supabase.from('movimentacoes_colaborador').delete().eq('colaborador_id', id);
+    await supabase.from('colaboradores').delete().eq('id', id);
+    toast.success('Colaborador removido!');
+    await fetchData();
+  };
+
   const handleSalvarLancamento = async () => {
     if (!tipoLancamento || !dataLancamento || !colaboradorSelecionado) {
       toast.error('Preencha tipo e data');
@@ -71,9 +103,6 @@ const ControleColaboradores = () => {
     toast.success('Lançamento salvo!');
     resetForm();
     setDialogLancamento(false);
-    // Refresh selected
-    const updated = colaboradores.find(c => c.id === colaboradorSelecionado.id);
-    if (updated) setColaboradorSelecionado(updated);
   };
 
   const handleRemoverLancamento = async (id: string) => {
@@ -81,7 +110,6 @@ const ControleColaboradores = () => {
     toast.success('Lançamento removido');
   };
 
-  // Get lancamentos for selected month
   const getLancamentosMes = (colab: ColaboradorControle) => {
     return colab.lancamentos.filter(l => {
       const d = new Date(l.data + 'T00:00:00');
@@ -89,7 +117,6 @@ const ControleColaboradores = () => {
     });
   };
 
-  // Refresh selected collaborator data when colaboradores changes
   const colabAtual = colaboradorSelecionado
     ? colaboradores.find(c => c.id === colaboradorSelecionado.id) || colaboradorSelecionado
     : null;
@@ -115,12 +142,11 @@ const ControleColaboradores = () => {
   if (colabAtual) {
     return (
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => setColaboradorSelecionado(null)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">{colabAtual.nome}</h1>
             <p className="text-muted-foreground">{colabAtual.cargo}</p>
           </div>
@@ -305,9 +331,37 @@ const ControleColaboradores = () => {
   // List view
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Controle de Colaboradores</h1>
-        <p className="text-muted-foreground">Unidade Senior – Faltas, Folgas e Plantões</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Controle de Colaboradores</h1>
+          <p className="text-muted-foreground">Unidade Senior – Faltas, Folgas e Plantões</p>
+        </div>
+        {/* Cadastrar Colaborador */}
+        <Dialog open={dialogCadastro} onOpenChange={(o) => { setDialogCadastro(o); if (!o) resetCadastroForm(); }}>
+          <DialogTrigger asChild>
+            <Button>
+              <UserPlus className="h-4 w-4 mr-2" /> Cadastrar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Cadastrar Colaborador</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-foreground">Nome Completo</Label>
+                <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Nome do colaborador" className="bg-secondary border-border" />
+              </div>
+              <div>
+                <Label className="text-foreground">Cargo</Label>
+                <Input value={novoCargo} onChange={e => setNovoCargo(e.target.value)} placeholder="Ex: Cozinheiro, Auxiliar..." className="bg-secondary border-border" />
+              </div>
+              <Button onClick={handleCadastrarColaborador} className="w-full">
+                <UserPlus className="h-4 w-4 mr-2" /> Salvar Colaborador
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Search */}
@@ -336,11 +390,13 @@ const ControleColaboradores = () => {
             return (
               <Card
                 key={colab.id}
-                className="bg-card border-border cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => setColaboradorSelecionado(colab)}
+                className="bg-card border-border hover:border-primary/50 transition-colors"
               >
                 <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div
+                    className="flex items-center gap-3 flex-1 cursor-pointer"
+                    onClick={() => setColaboradorSelecionado(colab)}
+                  >
                     <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
                       <span className="text-primary font-bold">{colab.nome.charAt(0)}</span>
                     </div>
@@ -349,7 +405,7 @@ const ControleColaboradores = () => {
                       <p className="text-sm text-muted-foreground">{colab.cargo}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     {faltas > 0 && (
                       <Badge variant="outline" className="text-destructive border-destructive/30">
                         {faltas} falta(s)
@@ -360,6 +416,27 @@ const ControleColaboradores = () => {
                         {plantoes} plantão(ões)
                       </Badge>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={e => e.stopPropagation()}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-foreground">Remover Colaborador</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja remover <strong>{colab.nome}</strong>? Todos os lançamentos serão apagados.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleRemoverColaborador(colab.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </CardContent>
               </Card>
