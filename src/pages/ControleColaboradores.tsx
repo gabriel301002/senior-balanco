@@ -308,8 +308,13 @@ const ControleColaboradores = () => {
                         <TableCell className="text-foreground">
                           {(l.tipo === 'falta_justificada' || l.tipo === 'falta_nao_justificada') ? (l.atestado ? 'Sim' : 'Não') : '-'}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm max-w-[150px] truncate">
-                          {l.observacao || '-'}
+                        <TableCell className="text-muted-foreground text-sm max-w-[250px]">
+                          {l.observacao ? (
+                            <details className="cursor-pointer">
+                              <summary className="truncate max-w-[150px]">{l.observacao}</summary>
+                              <p className="mt-1 whitespace-pre-wrap text-foreground bg-secondary/50 rounded p-2 text-xs">{l.observacao}</p>
+                            </details>
+                          ) : '-'}
                         </TableCell>
                         <TableCell>
                           <Button variant="ghost" size="icon" onClick={() => handleRemoverLancamento(l.id)} className="text-destructive hover:text-destructive">
